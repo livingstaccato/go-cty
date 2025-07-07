@@ -73,3 +73,64 @@ Feature: cty Type Core Functionality
     # - List(T), Map(T), Set(T), Tuple([T1,T2]), Object({attr:T}), ObjectWithOpt({attr:T}, [opt_attr]).
     # - Str is used in ObjectWithOpt example for cty.String for brevity.
     # - GoString output includes "cty." package prefix. Attribute maps and optional attribute lists are sorted alphabetically.
+
+  Scenario Outline: List Type introspection (IsListType, ListElementType)
+    # Covers methods from cty/list_type.go
+    Given a cty.Type <TypeInstance>
+    When IsListType() is called on <TypeInstance>
+    Then the result should be <IsList>
+    When ListElementType() is called on <TypeInstance>
+    Then the result should be <ElementType> or null if not a list
+
+    Examples:
+      | TypeInstance      | IsList | ElementType |
+      | List(String)      | true   | String      |
+      | List(Number)      | true   | Number      |
+      | List(List(Bool))  | true   | List(Bool)  |
+      | Map(String)       | false  | null        |
+      | String            | false  | null        |
+      | DynamicType       | false  | null        | # IsListType is false for DynamicPseudoType
+
+  Scenario Outline: Map Type introspection (IsMapType, MapElementType)
+    # Covers methods from cty/map_type.go
+    Given a cty.Type <TypeInstance>
+    When IsMapType() is called on <TypeInstance>
+    Then the result should be <IsMap>
+    When MapElementType() is called on <TypeInstance>
+    Then the result should be <ElementType> or null if not a map
+
+    Examples:
+      | TypeInstance    | IsMap | ElementType |
+      | Map(String)     | true  | String      |
+      | Map(Number)     | true  | Number      |
+      | Map(Map(Bool))  | true  | Map(Bool)   |
+      | List(String)    | false | null        |
+      | String          | false | null        |
+      | DynamicType     | false | null        | # IsMapType is false for DynamicPseudoType
+
+  Scenario Outline: Type Equality for List and Map Types (Type.Equals)
+    # Covers cty.typeList.Equals and cty.typeMap.Equals
+    Given a cty.Type LHS <LHSType>
+    And a cty.Type RHS <RHSType>
+    When <LHSType>.Equals(<RHSType>) is evaluated
+    Then the result should be <ExpectedEquality>
+
+    Examples: List Types
+      | LHSType           | RHSType           | ExpectedEquality |
+      | List(String)      | List(String)      | true             |
+      | List(String)      | List(Number)      | false            |
+      | List(String)      | Map(String)       | false            |
+      | List(List(S))     | List(List(S))     | true             |
+      | List(List(S))     | List(List(N))     | false            |
+      | List(DynamicType) | List(DynamicType) | true             |
+      | List(DynamicType) | List(String)      | false            |
+
+    Examples: Map Types
+      | LHSType         | RHSType         | ExpectedEquality |
+      | Map(String)     | Map(String)     | true             |
+      | Map(String)     | Map(Number)     | false            |
+      | Map(String)     | List(String)    | false            |
+      | Map(Map(S))     | Map(Map(S))     | true             |
+      | Map(Map(S))     | Map(Map(N))     | false            |
+      | Map(DynamicType)| Map(DynamicType)| true             |
+      | Map(DynamicType)| Map(String)     | false            |

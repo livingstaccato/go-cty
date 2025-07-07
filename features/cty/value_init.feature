@@ -98,3 +98,27 @@ Feature: cty.Value Initialization and Construction
     # - ElementsMap for CanMapVal is a Go map[string]cty.Value.
     # - Type abbreviations: S=String.
     # - Some complex structures are described textually for brevity in "ElementsDescription".
+
+  Scenario Outline: Creating Null Values (NullVal)
+    # Covers implicit testing for cty.NullVal(type)
+    Given a cty.Type <TargetType>
+    When a null cty.Value "null_val" is created for this type using NullVal(<TargetType>)
+    Then "null_val" should be null
+    And "null_val" should be known
+    And the type of "null_val" should be <TargetType>
+    And the GoString of "null_val" should be "cty.NullVal(<GoStringOfType>)"
+
+    Examples:
+      | TargetType         | GoStringOfType          |
+      | String             | "cty.String"            |
+      | Number             | "cty.Number"            |
+      | Bool               | "cty.Bool"              |
+      | List(String)       | "cty.List(cty.String)"  |
+      | Map(Number)        | "cty.Map(cty.Number)"   |
+      | Set(Bool)          | "cty.Set(cty.Bool)"     |
+      | Tuple([String, N]) | "cty.Tuple([]cty.Type{cty.String, cty.Number})" |
+      | Object({"a":S})    | "cty.Object(map[string]cty.Type{\"a\":cty.String})" |
+      | DynamicType        | "cty.DynamicPseudoType" |
+      # Capsule types would also be relevant here if a generic test capsule type is available
+      # For instance, if Capsule("test", someGoType) is TestCapsuleType:
+      # | TestCapsuleType    | "cty.Capsule(\"test\", reflect.TypeOf(someGoType{}))" |

@@ -126,3 +126,26 @@ Feature: Standard Library String Manipulation Functions
     # - S for cty.String type, e.g. Unknown(S)
     # - Refinements like .RefineNotNull(), .RefinePrefix() are applied to Unknown results.
     # - For Join, ListsToJoin is a list of cty.ListVal arguments.
+
+  Scenario Outline: Sorting a list of strings (Sort function)
+    # Covers test: TestSort (from cty/function/stdlib/string_test.go)
+    Given a cty List of Strings <InputList>
+    When the Sort function is called
+    Then the result should be the cty List of Strings <ExpectedSortedList>
+    And if the input list was Unknown, the result should be Unknown(List(String)) refined as NotNull, preserving length refinements
+    And if the input list contained Unknown elements, the result is a list of Unknown(String) elements of the same length
+
+    Examples:
+      | InputList                                      | ExpectedSortedList                              |
+      | List()                                         | List()                                          | # Empty list
+      | List("a")                                      | List("a")                                       | # Single element
+      | List("b", "a")                                 | List("a", "b")                                  |
+      | List("b", "a", "c")                            | List("a", "b", "c")                             |
+      | Unknown(List(String))                          | Unknown(List(String))                           |
+      | List("b", Unknown(String))                     | List(Unknown(String), Unknown(String))          |
+      | Unknown(List(S)).RefineLengthBounds(1,2)       | Unknown(List(S)).RefineNotNull().RefineLengthBounds(1,2) |
+
+    # Note on Value Syntax (continued for Sort):
+    # - List() implies cty.ListValEmpty(cty.String) for Sort scenarios.
+    # - List("a", "b") implies cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})
+    # - .RefineLengthBounds(min,max) is a shorthand for refinement on unknown list length.
