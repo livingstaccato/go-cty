@@ -6,6 +6,7 @@ Feature: cty Value Marks
   how these marks are propagated, and how they can be inspected or removed.
   Marks do not affect a value's core type or equality for cty operations
   but can be used to track metadata like sensitivity or provenance.
+  Mark values themselves can be of any comparable Go type (e.g., string, int).
 
   Scenario Outline: Checking if a value contains any marks (ContainsMarked)
     # Covers test: TestContainsMarked

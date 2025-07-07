@@ -47,25 +47,25 @@ Feature: Type Comparison for Conversion
       | Map(String)| String     | 0              | Map of String is neutral to String        |
 
     Examples: Objects
-      | TypeA                                  | TypeB                                  | ExpectedResult | Description                                     |
-      | EmptyObject                            | EmptyObject                            | 0              | EmptyObject equals EmptyObject                  |
-      | EmptyObject                            | Object({"name":String})                | 0              | EmptyObject is neutral to Object with attribute |
-      | Object({"name":String})                | Object({"name":String})                | 0              | Identical Objects are equal                     |
-      | Object({"name":String,"number":Number})| Object({"name":String})                | 0              | Object with more attrs is neutral to subset   |
-      | Object({"number":Number})              | Object({"name":String})                | 0              | Objects with different attrs are neutral        |
-      | Object({"name":String,"number":String})| Object({"name":String,"number":Number})| -1             | Object attr type String precedes Number         |
-      | Object({"name":String,"number":Number})| Object({"name":String,"number":String})| 1              | Object attr type Number follows String          |
-      | Object({"a":String,"b":Number})        | Object({"a":Number,"b":String})        | 0              | Tricky object case, neutral                   |
+      | TypeA                                  | TypeB                                  | ExpectedResult | Description                                                          |
+      | EmptyObject                            | EmptyObject                            | 0              | EmptyObject equals EmptyObject                                       |
+      | EmptyObject                            | Object({"name":String})                | 0              | EmptyObject is neutral to Object with attribute                      |
+      | Object({"name":String})                | Object({"name":String})                | 0              | Identical Objects are equal                                          |
+      | Object({"name":String,"number":Number})| Object({"name":String})                | 0              | Object with more attrs is neutral to subset                          |
+      | Object({"number":Number})              | Object({"name":String})                | 0              | Objects with different attrs are neutral                             |
+      | Object({"name":String,"number":String})| Object({"name":String,"number":Number})| -1             | Object attr type String precedes Number                              |
+      | Object({"name":String,"number":Number})| Object({"name":String,"number":String})| 1              | Object attr type Number follows String                               |
+      | Object({"a":String,"b":Number})        | Object({"a":Number,"b":String})        | 0              | Neutral; potential common base type with String attributes exists  |
 
     Examples: Tuples
-      | TypeA                               | TypeB                               | ExpectedResult | Description                                   |
-      | EmptyTuple                          | EmptyTuple                          | 0              | EmptyTuple equals EmptyTuple                  |
-      | EmptyTuple                          | Tuple([String])                     | 0              | EmptyTuple is neutral to Tuple with element   |
-      | Tuple([String])                     | Tuple([String])                     | 0              | Identical Tuples are equal                    |
-      | Tuple([String,Number])              | Tuple([String])                     | 0              | Tuple with more elements is neutral to subset |
-      | Tuple([String,String])              | Tuple([String,Number])              | -1             | Tuple element type String precedes Number     |
-      | Tuple([String,Number])              | Tuple([String,String])              | 1              | Tuple element type Number follows String      |
-      | Tuple([String,Number])              | Tuple([Number,String])              | 0              | Tricky tuple case, neutral                    |
+      | TypeA                               | TypeB                               | ExpectedResult | Description                                                            |
+      | EmptyTuple                          | EmptyTuple                          | 0              | EmptyTuple equals EmptyTuple                                           |
+      | EmptyTuple                          | Tuple([String])                     | 0              | EmptyTuple is neutral to Tuple with element                            |
+      | Tuple([String])                     | Tuple([String])                     | 0              | Identical Tuples are equal                                             |
+      | Tuple([String,Number])              | Tuple([String])                     | 0              | Tuple with more elements is neutral to subset                          |
+      | Tuple([String,String])              | Tuple([String,Number])              | -1             | Tuple element type String precedes Number                              |
+      | Tuple([String,Number])              | Tuple([String,String])              | 1              | Tuple element type Number follows String                               |
+      | Tuple([String,Number])              | Tuple([Number,String])              | 0              | Neutral; potential common base type with String elements exists    |
 
     Examples: Lists and Sets
       | TypeA        | TypeB        | ExpectedResult | Description                               |

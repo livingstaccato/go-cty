@@ -6,6 +6,8 @@ Feature: cty.Value JSON Marshaling and Unmarshaling
   and unmarshaled from JSON using a specified cty.Type. This allows
   for type-aware serialization, including handling of cty.DynamicPseudoType
   by embedding type information in the JSON.
+  **Note:** Unless specifically handled by the `DynamicPseudoType` wrapper's "unknown" field,
+  cty value marks are generally NOT preserved in the JSON payload by this marshaling process.
 
   Scenario Outline: Round-trip marshaling and unmarshaling of cty.Value
     # Covers test: TestValueJSONable
@@ -60,6 +62,27 @@ Feature: cty.Value JSON Marshaling and Unmarshaling
       | List(True,False)    | List(Bool)          | List(DynamicType)| "[{\"value\":true,\"type\":\"bool\"},{\"value\":false,\"type\":\"bool\"}]" | List(True,False) | List(Bool)           |
       | Obj(s=T,d=T)        | Object(s=B,d=B)     | Object(s=B,d=Dyn)| "{\"dynamic\":{\"value\":true,\"type\":\"bool\"},\"static\":true}" | Obj(s=T,d=T) | Object(s=B,d=B)      |
       | Obj(s=T,d=T)        | Object(s=B,d=B)     | DynamicType      | "{\"value\":{\"dynamic\":true,\"static\":true},\"type\":[\"object\",{\"dynamic\":\"bool\",\"static\":\"bool\"}]}" | Obj(s=T,d=T) | Object(s=B,d=B) |
+
+    Examples: Unknown Value Handling
+      | InputValue      | InputValueType | TargetCtyType | ExpectedJSONString                        | ExpectedUnmarshaledValue | ExpectedUnmarshaledCtyType |
+      | Unknown(String) | String         | String        | "null"                                    | Null(String)             | String                     | # Unknown to concrete type becomes null
+      | Unknown(String) | String         | DynamicType   | "{\"value\":null,\"type\":\"string\",\"unknown\":true}" | Unknown(String)          | String                     | # Unknown to dynamic type preserves unknown-ness
+
+  Scenario Outline: Unmarshaling JSON with type mismatches
+    # Covers implied error handling for Unmarshal
+    Given a JSON string "<JSONInputString>"
+    And a target cty.Type <TargetCtyType> for unmarshaling
+    When an attempt is made to unmarshal the JSON string to the target type
+    Then an error should occur with a message containing "<ExpectedErrorMessagePart>"
+
+    Examples:
+      | JSONInputString | TargetCtyType | ExpectedErrorMessagePart                               |
+      | "true"          | Number        | "number required, but encountered bool"                |
+      | "\"text\""      | Bool          | "bool required, but encountered string"                |
+      | "123"           | List(String)  | "list required, but encountered number"                |
+      | "[1, \"mix\"]"  | List(Number)  | "error converting list element 1: number required"     | # cty/json unmarshal might report index 1 for "mix"
+      | "{\"val\":true}"| Map(Number)   | "error converting map element \"val\": number required"|
+      | "{"             | String        | "unexpected end of JSON input"                         | # Malformed JSON
 
     # Note on Value/Type Syntax:
     # - InputValue/ExpectedUnmarshaledValue: String("h"), Number(5), True(T)/False(F), Null(Type), List(...), Set(...), Tuple(...), Obj(key=Val), EmptyList(Type), etc.

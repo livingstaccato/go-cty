@@ -99,3 +99,39 @@ Feature: cty.Value to Go Native Conversion (FromCtyValue)
     # - The Go variable to be populated is created via reflect.New(TargetGoType).Elem().Interface() for non-pointer ExpectedGoValues,
     #   or reflect.New(TargetGoType).Interface() for pointer ExpectedGoValues, then its Elem() is compared.
     # - For pointer ExpectedGoValues like &true or (*bool)(nil), the test asserts the pointed-to value or nil-ness.
+
+  Scenario Outline: Error conditions when converting cty.Value to Go native value
+    # Covers implied error handling for FromCtyValue
+    Given a cty.Value <CtyValue> of cty type <CtyValueType>
+    And a target Go reflect.Type <TargetGoTypeString> representing <TargetGoTypeDescription>
+    When FromCtyValue is called with the cty.Value and a pointer to a Go variable of the target type
+    Then an error should occur with a message containing "<ExpectedErrorMessagePart>"
+
+    Examples: Conversion Failures
+      | CtyValue             | CtyValueType      | TargetGoTypeString | TargetGoTypeDescription | ExpectedErrorMessagePart                                           |
+      | String("abc")        | String            | "int"              | int                     | "cannot use string value as int"                                   |
+      | Number(1)            | Number            | "bool"             | bool                    | "cannot use number value as bool"                                  |
+      | List(N(1),N(2),N(3)) | List(Number)      | "[2]int"           | array of 2 ints         | "cannot transform list of 3 elements to array of 2 elements"       |
+      | Obj(a=S("s"))        | Object(a=String)  | "main.testStructMissingField" | struct with missing field | "cty: object does not have attribute \"MandatoryField\""         | # Assuming testStructMissingField needs MandatoryField
+      | CapsuleA             | CapsuleT1         | "main.capsuleType2Native" | other capsule struct    | "cty: cannot use capsule type gocty.capsuleType1Native as gocty.capsuleType2Native" | # Actual native type names may vary
+      | Unknown(Number)      | Number            | "int"              | int                     | "cannot convert unknown value to int"                              |
+      | Unknown(Number)      | Number            | "*int"             | pointer to int          | "cannot create non-nil pointer from cty.UnknownVal"                | # Or other appropriate error for unknown to pointer if not nilled
+
+  Scenario: Ignoring Go struct fields with cty:"-" tag during conversion from cty.Object
+    # Covers implied behavior of `cty:"-"` struct tag
+    Given a cty.Value ObjectVal({"visible": String("yes"), "ignored": String("no"), "also_ignored": String("extra")}) of type Object(visible=String, ignored=String, also_ignored=String)
+    And a target Go reflect.Type for a struct "GoStructWithIgnoredField" defined as:
+      """
+      type GoStructWithIgnoredField struct {
+          Visible     string `cty:"visible"`
+          Ignored     string `cty:"-"`
+          AlsoIgnored string `cty:"-"` // Example of another ignored field
+          NotPresent  string // This field has no corresponding cty attr and no tag
+      }
+      """
+    When FromCtyValue is called to populate an instance of "GoStructWithIgnoredField"
+    Then the "Visible" field of the Go struct instance should be "yes"
+    And the "Ignored" field of the Go struct instance should be its Go zero value ""
+    And the "AlsoIgnored" field of the Go struct instance should be its Go zero value ""
+    And the "NotPresent" field of the Go struct instance should be its Go zero value ""
+    And no error should occur

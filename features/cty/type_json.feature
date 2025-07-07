@@ -46,3 +46,24 @@ Feature: cty.Type JSON Serialization
     # - Object({attrName1: Type1, ...}), EmptyObject.
     # - ObjectWithOpt({attrName1: Type1, ...}, [optAttrName1, ...]).
     # - S=String, B=Bool. Attribute names in JSON for objects are sorted. Optional attribute names are sorted.
+
+    Examples: Capsule Type
+      | CtyType                                          | ExpectedJSONString                                            |
+      | Capsule("bytes", "[]uint8")                      | "[\"capsule\",\"bytes\",\"[]uint8\"]"                           | # Assumes Go type name is stringified
+      | Capsule("custom", "main.customGoType")           | "[\"capsule\",\"custom\",\"main.customGoType\"]"                |
+
+  Scenario Outline: Attempting to unmarshal invalid JSON into a cty.Type
+    # Covers implied error handling for Type unmarshaling
+    Given an invalid JSON string "<InvalidJSONForType>"
+    When an attempt is made to unmarshal it into a cty.Type
+    Then an error should occur with a message containing "<ExpectedErrorMessagePart>"
+
+    Examples:
+      | InvalidJSONForType          | ExpectedErrorMessagePart                                     |
+      | "{\"type\":\"string\"}"     | "cty.Type: JSON value must be a string or an array"          | # Object is not valid top-level for Type
+      | "[\"list\"]"                | "cty.Type: list type must have two elements"                 | # Missing element type
+      | "[\"object\", true]"        | "cty.Type: object type attributes must be a JSON object"     | # Attribute map is not an object
+      | "[\"object\", {}, \"extra\"]" | "cty.Type: object type has too many elements"                | # Extra element after optional attrs
+      | "[\"capsule\",\"nameOnly\"]"  | "cty.Type: capsule type must have three elements"            |
+      | "\"invalidPrimitive\""      | "cty.Type: unrecognized primitive type keyword \"invalidPrimitive\"" |
+      | "["                         | "unexpected end of JSON input"                               | # Malformed JSON

@@ -35,8 +35,8 @@ Feature: Capsule Type Behavior
     And a capsule value "capVal2_no_ops" is created from "no_ops_capsule" and "i2_no_ops"
     Then the GoString representation of "capVal1_no_ops" should be the default cty representation for a capsule of "no_ops_capsule" encapsulating "i1_no_ops"
     And the TypeGoString representation of "no_ops_capsule" should be the default cty type representation for "no_ops_capsule"
-    And "capVal1_no_ops" should not be Equal to "capVal2_no_ops"
-    And "capVal1_no_ops" should not be RawEqualTo "capVal2_no_ops"
+    And "capVal1_no_ops" should not be Equal to "capVal2_no_ops" because default capsule equality is by pointer identity or not defined
+    And "capVal1_no_ops" should not be RawEqualTo "capVal2_no_ops" because default capsule equality is by pointer identity or not defined
 
   Scenario: Capsule with extension data
     # Covers test: TestCapsuleExtensionData

@@ -46,6 +46,9 @@ Feature: Standard Library Collection Functions
       | List(Unknown(String))         | String      | Number(2)        | List(List(Unknown(String)))                             |                      |
       | List("a", "b", "c")           | String      | Number(2)        | List(List("a","b"), List("c"))                          |                      |
       | List("a")                     | String      | Number(0)        | List(List("a"))                                         | # Zero size means infinite |
+      | Unknown(List(S))              | String      | Number(2)        | Unknown(List(List(String))).RefineNotNull()             |                      |
+      | List("a","b","c","d")         | String      | Unknown(Number)  | Unknown(List(List(String))).RefineNotNull()             |                      |
+      | EmptyList                     | String      | Number(2)        | EmptyList(List(String))                                 |                      |
       | EmptyList                     | String      | Number(-1)       |                                                         | "the size argument must be positive" |
       | EmptyList                     | String      | PositiveInfinity |                                                         | "invalid size: value must be a whole number..." |
       | EmptyList                     | String      | Number(1.5)      |                                                         | "invalid size: value must be a whole number..." |
@@ -67,6 +70,9 @@ Feature: Standard Library Collection Functions
       | List(1, 2, 3, 4)                    | String("1")    | False          | # Type mismatch
       | Set("quick", "brown", "fox")        | String("quick")| True           |
       | Set(Unknown(String), "brown", "fox")| String("quick")| Unknown(Bool)  |
+      | Unknown(List(String))               | String("any")  | Unknown(Bool)  |
+      | List("a", "b")                      | Unknown(String)| Unknown(Bool)  |
+      | Unknown(Set(String))                | Dynamic        | Unknown(Bool)  |
       | Tuple("quick", "brown", Number(3))  | Number(3)      | True           |
 
   Scenario Outline: Merging maps/objects (Merge)
@@ -84,6 +90,8 @@ Feature: Standard Library Collection Functions
       | [Null(Map(S)), Null(Obj(a=List(S)))]            | EmptyObject                                 |                      |
       | [Unknown(Map(S)), Map(c="d")]                   | Unknown(Map(S)).RefineNotNull()             |                      |
       | [Dynamic, Map(c="d")]                           | Dynamic                                     |                      |
+      | [Unknown(Object(a=S)), Obj(b="B")]              | Unknown(Object(a=S,b=S)).RefineNotNull()    |                      |
+      | [Map(a="A"), Unknown(Map(S))]                   | Unknown(Map(S)).RefineNotNull()             |                      |
       | [Map(a="b",c="d"), Map(a="x")]                  | Map(a="x", c="d")                           | # Last-in wins       |
       | [Map(a="b"), List("a","x")]                     |                                             | "argument 2 is list of string, not map" |
       | [Map(a=List("b","c")), Map(d=Map(e="f"))]       | Obj(a=List("b","c"), d=Map(e="f"))          |                      |
@@ -97,13 +105,19 @@ Feature: Standard Library Collection Functions
     Then the result should be <ExpectedValue>
     And an error should <ErrorOccur>
 
-    Examples:
+    Examples: Successful Access
       | Collection        | Key           | ExpectedValue   | ErrorOccur |
       | List(True)        | Number(0)     | True            | not occur  |
       | Map("h"=True)     | String("h")   | True            | not occur  |
       | Tuple(True, "s")  | Number(1)     | String("s")     | not occur  |
       | EmptyList(Number) | Unknown(Num)  | Unknown(Number) | not occur  |
       | Dynamic           | String("h")   | Dynamic         | not occur  |
+
+    Examples: Access Errors
+      | Collection        | Key           | ExpectedValue   | ErrorOccur | # ExpectedErrorMessage in practice
+      | List(True)        | Number(1)     |                 | occur      | # Index out of bounds
+      | Map("h"=True)     | String("x")   |                 | occur      | # Key not found
+      | List(True)        | String("x")   |                 | occur      | # Invalid key type for list
 
   Scenario Outline: Getting collection length (Length)
     # Covers test: TestLength
@@ -142,6 +156,14 @@ Feature: Standard Library Collection Functions
       | Map(b="B".M(a),f="H".M(b))        | String("s")  | String("N").Mark(c)| String("N").Mark(c)             |
       | Map(b="B".M(a),f="H".M(b))        | String("s")  | Number(5).Mark(c)| String("5").Mark(c)             |
       | Map(b="B",f="H")                  | String("b").Mark(a)| String("N") | String("B").Mark(a)             |
+
+    Examples: Unknown Inputs and Incompatible Default
+      | Map                               | Key             | Default        | ExpectedValue                     |
+      | Unknown(Map(String))              | String("k")     | String("def")  | Unknown(String).RefineNotNull()   |
+      | Map(k="v")                        | Unknown(String) | String("def")  | Unknown(String).RefineNotNull()   |
+      | Map(k="v")                        | String("x")     | Unknown(String)| Unknown(String).RefineNotNull()   |
+      | Map(k=String("v"))                | String("x")     | Number(1)      | String("1")                       | # Default converted
+      | Map(k=String("v"))                | String("x")     | List(S("a"))   | # Error: default not convertible  | # This should ideally error, needs specific error message
 
   Scenario Outline: Accessing element by list/tuple index with wrapping (Element)
     # Covers test: TestElement

@@ -5,6 +5,16 @@ Feature: Go Native to cty.Value Conversion (ToCtyValue)
   This feature describes how various Go native data types are converted into
   cty.Value objects of a specified cty.Type using the ToCtyValue function.
 
+  This feature describes how various Go native data types are converted into
+  cty.Value objects of a specified cty.Type using the ToCtyValue function.
+
+  When converting Go structs to cty.Object, fields are mapped to object attributes
+  based on `cty:"attribute_name"` struct tags. If a tag is absent, the
+  Go field name is used. Unmatched Go fields are ignored if not required by the
+  target object type; missing required object attributes in the cty.Object type
+  that are not nullable will typically result in an error or a best-effort conversion
+  with nulls if the target attribute is optional or the source provides a Go nil pointer.
+
   Scenario Outline: Converting Go native value to cty.Value
     # Covers test: TestIn
     Given a Go native value <GoValue> of Go type <GoType>

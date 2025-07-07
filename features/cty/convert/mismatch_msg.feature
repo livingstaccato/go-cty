@@ -5,6 +5,7 @@ Feature: Type Mismatch Error Messages
   This feature describes the expected error messages generated when a cty type
   conversion fails due to a type mismatch. The messages should be user-friendly
   and clearly indicate the nature of the mismatch.
+  When multiple attributes are missing for an object type, they are listed alphabetically.
 
   Background:
     Given the cty type mismatch message generation function

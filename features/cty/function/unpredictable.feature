@@ -37,8 +37,15 @@ Feature: Unpredictable Function Wrapper
     When the original function "F_orig" is called with arguments [True]
     Then the result should be a known cty.Value Null of type Bool
 
+  Scenario: Mark propagation with Unpredictable Function
+    # Covers implied mark handling for robust porting
+    Given the "Unpredictable Function" "F_unpred" as defined in the background
+    When "F_unpred" is called with arguments [True.Mark("input_mark")]
+    Then the result should be an Unknown cty.Value of type Bool
+    And the result should have marks ["input_mark"]
+
     # Note on Value/Type Syntax:
     # - Bool, String are cty types.
-    # - True, String("hello") are cty values.
+    # - True, String("hello"), True.Mark("input_mark") are cty values.
     # - Unknown cty.Value of type X means cty.UnknownVal(cty.X).
     # - Null cty.Value of type X means cty.NullVal(cty.X).

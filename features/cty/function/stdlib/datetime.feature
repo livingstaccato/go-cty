@@ -12,29 +12,34 @@ Feature: Standard Library Date and Time Formatting
 
   Scenario Outline: Formatting a timestamp string with valid format specifiers
     # Covers test: TestFormatDate (successful formatting cases)
-    Given a format string "<FormatSpecifier>"
-    When FormatDate is called with the format specifier and the base timestamp string
-    Then the result should be the string "<ExpectedFormattedString>"
+    Given a format string <FormatSpecifier>
+    And an input timestamp string <TimestampString>
+    When FormatDate is called with the format specifier and the timestamp string
+    Then the result should be the string <ExpectedFormattedString>
+    And marks from format specifier and timestamp string should be propagated to the result
 
-    Examples: Common Date and Time Format Specifiers
-      | FormatSpecifier   | ExpectedFormattedString | Description                                      |
-      | ""                | ""                      | Empty format results in empty string             |
-      | "YYYY-MM-DD"      | "2006-01-02"            | ISO 8601 Date                                    |
-      | "EEE, MMM D ''YY" | "Mon, Jan 2 '06"        | Short day, short month, day of month, short year |
-      | "hh:mm:ss"        | "15:04:05"              | Time in 24-hour format                           |
-      | "H 'o''clock' AA" | "3 o'clock PM"          | Hour (12h), literal text, AM/PM marker (upper) |
-      | "hh:mm:ssZZZZ"    | "15:04:05+0000"         | Time with numeric timezone offset (no colon)     |
-      | "hh:mm:ssZZZZZ"   | "15:04:05+00:00"        | Time with numeric timezone offset (with colon)   |
-      | "MMMM"            | "January"               | Full month name                                  |
-      | "EEEE"            | "Monday"                | Full day name                                    |
-      | "aa"              | "pm"                    | AM/PM marker (lower)                             |
+    Examples: Common Date and Time Format Specifiers (Timestamp: "2006-01-02T15:04:05Z" - BaseTimestamp)
+      | FormatSpecifier            | TimestampString                 | ExpectedFormattedString         | Description                                      |
+      | "YYYY-MM-DD"               | BaseTimestamp                   | "2006-01-02"                    | ISO 8601 Date                                    |
+      | String("YYYY-MM-DD").Mark(f)| BaseTimestamp                   | String("2006-01-02").Mark(f)    | Mark on format str                               |
+      | "YYYY-MM-DD"               | String(BaseTimestamp).Mark(t)   | String("2006-01-02").Mark(t)    | Mark on timestamp str                            |
+      | String("YYYY-MM-DD").Mark(f)| String(BaseTimestamp).Mark(t)   | String("2006-01-02").WithMarks(f,t) | Marks on both inputs                           |
+      | ""                           | BaseTimestamp                   | ""                              | Empty format results in empty string             |
+      | "EEE, MMM D ''YY"            | BaseTimestamp                   | "Mon, Jan 2 '06"                | Short day, short month, day of month, short year |
+      | "hh:mm:ss"                   | BaseTimestamp                   | "15:04:05"                      | Time in 24-hour format                           |
+      | "H 'o''clock' AA"            | BaseTimestamp                   | "3 o'clock PM"                  | Hour (12h), literal text, AM/PM marker (upper) |
+      | "hh:mm:ssZZZZ"               | BaseTimestamp                   | "15:04:05+0000"                 | Time with numeric timezone offset (no colon)     |
+      | "hh:mm:ssZZZZZ"              | BaseTimestamp                   | "15:04:05+00:00"                | Time with numeric timezone offset (with colon)   |
+      | "MMMM"                       | BaseTimestamp                   | "January"                       | Full month name                                  |
+      | "EEEE"                       | BaseTimestamp                   | "Monday"                        | Full day name                                    |
+      | "aa"                         | BaseTimestamp                   | "pm"                            | AM/PM marker (lower)                             |
 
-    Examples: Standard Machine-Oriented Formats
-      | FormatSpecifier                 | ExpectedFormattedString         | Standard   |
-      | "YYYY-MM-DD'T'hh:mm:ssZ"        | "2006-01-02T15:04:05Z"          | RFC3339    |
-      | "DD MMM YYYY hh:mm ZZZ"         | "02 Jan 2006 15:04 UTC"         | RFC822     |
-      | "EEEE, DD-MMM-YY hh:mm:ss ZZZ"  | "Monday, 02-Jan-06 15:04:05 UTC"| RFC850     |
-      | "EEE, DD MMM YYYY hh:mm:ss ZZZ" | "Mon, 02 Jan 2006 15:04:05 UTC" | RFC1123    |
+    Examples: Standard Machine-Oriented Formats (Timestamp: "2006-01-02T15:04:05Z" - BaseTimestamp)
+      | FormatSpecifier                 | TimestampString | ExpectedFormattedString         | Standard   |
+      | "YYYY-MM-DD'T'hh:mm:ssZ"        | BaseTimestamp   | "2006-01-02T15:04:05Z"          | RFC3339    |
+      | "DD MMM YYYY hh:mm ZZZ"         | BaseTimestamp   | "02 Jan 2006 15:04 UTC"         | RFC822     |
+      | "EEEE, DD-MMM-YY hh:mm:ss ZZZ"  | BaseTimestamp   | "Monday, 02-Jan-06 15:04:05 UTC"| RFC850     |
+      | "EEE, DD MMM YYYY hh:mm:ss ZZZ" | BaseTimestamp   | "Mon, 02 Jan 2006 15:04:05 UTC" | RFC1123    |
 
   Scenario Outline: Formatting with invalid format specifiers
     # Covers test: TestFormatDate (invalid format specifier error cases)
@@ -77,3 +82,21 @@ Feature: Standard Library Date and Time Formatting
       | "2017-13-02T00:00:00Z"     | "not a valid RFC3339 timestamp: cannot use \"-02T00:00:00Z\" as month" | # Quirky Go parser message
       | "2017-02-31T00:00:00Z"     | "not a valid RFC3339 timestamp: day out of range"            |
       | "2000-01-01T00:00:00,000Z" | "not a valid RFC3339 timestamp: cannot use \",\" as timestamp segment" |
+
+  Scenario Outline: Formatting with Null, Unknown, or Dynamic inputs
+    # Covers implied behavior for robust porting
+    Given a format string input <FormatInput>
+    And a timestamp string input <TimestampInput>
+    When FormatDate is called with the format input and timestamp input
+    Then the result should be <ExpectedResult>
+    And an error message, if any, should contain "<ErrorMessagePart>"
+
+    Examples:
+      | FormatInput      | TimestampInput   | ExpectedResult  | ErrorMessagePart           |
+      | Null(String)     | BaseTimestamp    |                 | "argument 1 must not be null" | # Assuming format is arg1
+      | String("YYYY")   | Null(String)     |                 | "argument 2 must not be null" | # Assuming timestamp is arg2
+      | Unknown(String)  | BaseTimestamp    | Unknown(String) |                            |
+      | String("YYYY")   | Unknown(String)  | Unknown(String) |                            |
+      | Dynamic          | BaseTimestamp    | Unknown(String) |                            |
+      | String("YYYY")   | Dynamic          | Unknown(String) |                            |
+      | Unknown(String)  | Unknown(String)  | Unknown(String) |                            |

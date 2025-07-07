@@ -57,6 +57,8 @@ Feature: Type Unification for Conversion
       | [Obj(a=Obj(a=S),b=Obj(a=S,b=S)), Map(Obj(a=S,b=S))]  | Map(Map(String))      | [true, true]      | Object with nested objects and Map of objects -> Map(Map(String))         |
       | [Obj(a=Obj(a=List(S))),b=Obj(a=Tuple([S]),b=List(S))), Map(Obj(a=List(S),b=List(S)))] | Map(Map(List(String))) | [true, true] | Deeply nested objects/maps with lists/tuples                              |
       | [Obj(a=Obj(a=S),b=Obj(a=S)), Map(Obj(a=S))]          | Map(Object(a=S))      | [true, false]     | Objects unify to Map of common Object type if all attributes match perfectly |
+      | [Tuple([Obj(a=S), DynamicType]), List(DynamicType)] | NilType               | <nil>             | Unification to NilType; original test notes FIXME for more complex recursive unification. |
+
 
     Examples: DynamicType Unification
       | InputTypes                                          | UnifiedType           | ConversionsNeeded   | Description                                                                 |

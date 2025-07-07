@@ -3,8 +3,14 @@
 
 Feature: Type Sorting for Conversion Unification
   This feature describes how a list of cty types is sorted. This sorting
-  is likely used as part of the type unification process to establish a
+  is used internally, likely as part of the type unification process, to establish a
   consistent order when determining a common type for conversion.
+
+  The underlying `compareTypes` function defines precedence (e.g., String before Number).
+  Types considered "neutral" (e.g., Bool and Number) have a comparison result of 0,
+  meaning their relative order in a sorted list containing both might depend on their
+  initial positions if the sort is stable, or an otherwise consistent arbitrary tie-break.
+  The examples show the output from the Go test, which reflects one such consistent ordering.
 
   Background:
     Given the cty type sorting mechanism (based on compareTypes)
@@ -28,15 +34,9 @@ Feature: Type Sorting for Conversion Unification
       | [Number, String, Number]                   | [String, Number, Number]                   | Sorts correctly with duplicates                  |
       | [String, List(String)]                     | [String, List(String)]                     | String is neutral with List(String)              |
       | [List(String), String]                     | [List(String), String]                     | List(String) is neutral with String              |
-      | [Bool, List(String), String]               | [List(String), String, Bool]               | List(String) and String are neutral, then Bool   | # Arbitrary but consistent for neutral group
+      | [Bool, List(String), String]               | [List(String), String, Bool]               | List(String) and String are neutral, then Bool   | # Example of neutral group ordering
       | [String, DynamicType]                      | [String, DynamicType]                      | String precedes DynamicType                      |
       | [DynamicType, String]                      | [String, DynamicType]                      | DynamicType is sorted after String               |
 
-    # Note:
+    # Note on Type Syntax:
     # - Type lists are represented as [Type1, Type2, ...]
-    # - The "neutral" keyword implies that the relative order of those specific types
-    #   might be arbitrary but is consistent according to the compareTypes logic.
-    #   For example, Bool and Number are neutral to each other, so their relative
-    #   order in a sorted list containing both might depend on their initial positions
-    #   if the sort is stable, or an arbitrary tie-break if not.
-    #   The examples show the output from the Go test, which reflects this.

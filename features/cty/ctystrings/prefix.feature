@@ -7,6 +7,18 @@ Feature: Safe Known String Prefix
   not to change its grapheme cluster representation if more characters are appended.
   This is crucial for unknown string refinement in cty.
 
+  The function employs general Unicode text segmentation rules. Additionally,
+  it includes heuristics for common delimiter characters often found in
+  machine-readable strings (like IDs, URLs, code fragments), considering them
+  safe endpoints for a known prefix as they are unlikely to start combining
+  grapheme sequences in those typical contexts.
+
+  **Important Note for Porting/Maintenance:** The expected prefix lengths in these
+  tests represent current behavior. Future improvements to SafeKnownPrefix might
+  allow for *longer* safe prefixes. However, to maintain backward compatibility,
+  the function should avoid returning *shorter* prefixes than those specified here
+  for the given inputs, unless a behavior is found to be clearly incorrect.
+
   Background:
     Given the SafeKnownPrefix function
 

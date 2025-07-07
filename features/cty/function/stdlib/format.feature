@@ -123,10 +123,18 @@ Feature: Standard Library String Formatting (sprintf-like)
       | "%v"         | [Dynamic]                                      | Unknown(List(String)).RefineNotNull() |                      |
       | "%v %v"      | [Null(Dyn), List(S("a"),Null(S),S("c"))]       | List("null a", "null null", "null c") |                    |
 
+    Examples: FormatList with Marks
+      | FormatString          | Args                                    | ExpectedListResult                               | ExpectedErrorMessage |
+      | "%s".Mark(fmt)        | [List(S("a"), S("b"))]                  | List(S("a").Mark(fmt), S("b").Mark(fmt))          |                      | # Mark on format string
+      | "%s"                  | [List(S("a").Mark(e1), S("b").Mark(e2))]| List(S("a").Mark(e1), S("b").Mark(e2))          |                      | # Marks on list elements
+      | "%s"                  | [List(S("a"), S("b")).Mark(L)]          | List(S("a").Mark(L), S("b").Mark(L))          |                      | # Mark on list argument itself
+      | "%s-%s".Mark(fmt)     | [List(S("a").M(e1),S("b").M(e2)).M(L1), List(S("x").M(e3),S("y").M(e4)).M(L2)] | List(S("a-x").WithMarks(fmt,e1,L1,e3,L2), S("b-y").WithMarks(fmt,e2,L1,e4,L2)) | | # All marks combined per iteration
+      | "%s"                  | [String("s").Mark(scalar)]              | List(S("s").Mark(scalar))                        |                      | # Marked scalar arg (repeated if others are lists)
+
     # Note on Value Syntax:
     # S=String, N=Number, B=Bool, Dyn=DynamicType, Unk=Unknown
     # List(...), Tuple(...), EmptyObject, EmptyTuple, Null(Type)
-    # .Mark(X), .WithMarks(X,Y)
+    # .Mark(X), .M(X) for mark shorthand, .WithMarks(X,Y)
     # RefinedPrefix is the expected safe prefix for unknown string results.
     # NullRefinedStatus indicates if an unknown string result is also refined as not null.
     # Args for FormatList are wrapped in an outer list, e.g., [ [List(S("h"))] ] for one list argument.

@@ -7,16 +7,16 @@ Feature: Capsule Type Conversion
 
   Background:
     Given a capsule type "capTyString" for Go type "string" with custom operations:
-      | Operation      | CustomLogic                                     |
-      | GoString       | returns "capTy(<string_value>)"                 |
-      | TypeGoString   | returns "capTy"                                 |
-      | RawEquals      | compares underlying string values for equality  |
-      | ConversionFrom | if source is cty.String, creates capTyString(source_string_value) |
-      | ConversionTo   | if destination is cty.String, returns cty.StringVal(encapsulated_string) |
+      | Operation      | CustomLogic                                                                 |
+      | GoString       | returns "capTy(<string_value>)"                                             |
+      | TypeGoString   | returns "capTy" (this string is used in some error messages like "capTy required") |
+      | RawEquals      | compares underlying string values for equality                              |
+      | ConversionFrom | allows conversion ONLY from cty.String, creating capTyString(source_string_value) |
+      | ConversionTo   | allows conversion ONLY to cty.String, returning cty.StringVal(encapsulated_string)   |
     And a capsule type "capTyInt" for Go type "int" with custom operations:
-      | Operation      | CustomLogic                                     |
-      | ConversionFrom | if source is "capTyString", creates capTyInt by parsing the string to int |
-      |                | if source is "capTyInt", creates capTyString from int string representation (simulated for test) |
+      | Operation      | CustomLogic                                                                 |
+      | ConversionFrom | if source is "capTyString", creates capTyInt by parsing the string to int   |
+      |                | if source is "capTyInt", creates capTyString from int string representation |
 
   Scenario Outline: Converting capsule values
     # Covers test: TestConvertCapsuleType

@@ -30,18 +30,18 @@ Feature: Standard Library Boolean Functions
     And if the result is an Unknown value, it should be refined as not null
 
     Examples:
-      | A                 | B                 | ExpectedOutput      |
-      | False             | False             | False               |
-      | False             | True              | False               |
-      | True              | False             | False               |
-      | True              | True              | True                |
-      | True              | Unknown(Bool)     | Unknown(Bool)       | # True AND Unknown -> Unknown
-      | False             | Unknown(Bool)     | False               | # False AND Unknown -> False (short-circuit)
-      | Unknown(Bool)     | Unknown(Bool)     | Unknown(Bool)       |
-      | True              | Dynamic           | Unknown(Bool)       |
-      | Dynamic           | Dynamic           | Unknown(Bool)       |
-      | False.Mark(1)     | True.Mark(2)      | False.WithMarks(1,2)|
-      | True.Mark(1)      | Unknown(Bool).Mark(2) | Unknown(Bool).WithMarks(1,2) |
+      | A                 | B                 | ExpectedOutput      | Description (Optional)                     |
+      | False             | False             | False               |                                            |
+      | False             | True              | False               |                                            |
+      | True              | False             | False               |                                            |
+      | True              | True              | True                |                                            |
+      | True              | Unknown(Bool)     | Unknown(Bool)       | # Result depends on Unknown                |
+      | False             | Unknown(Bool)     | False               | # Short-circuit                            |
+      | Unknown(Bool)     | Unknown(Bool)     | Unknown(Bool)       |                                            |
+      | True              | Dynamic           | Unknown(Bool)       | # Result depends on Dynamic (as Unknown)   |
+      | Dynamic           | Dynamic           | Unknown(Bool)       |                                            |
+      | False.Mark(1)     | True.Mark(2)      | False.WithMarks(1,2)|                                            |
+      | True.Mark(1)      | Unknown(Bool).Mark(2) | Unknown(Bool).WithMarks(1,2) |                                            |
 
   Scenario Outline: Logical OR operation
     # Covers test: TestOr
@@ -52,18 +52,18 @@ Feature: Standard Library Boolean Functions
     And if the result is an Unknown value, it should be refined as not null
 
     Examples:
-      | A                 | B                 | ExpectedOutput      |
-      | False             | False             | False               |
-      | False             | True              | True                |
-      | True              | False             | True                |
-      | True              | True              | True                |
-      | False             | Unknown(Bool)     | Unknown(Bool)       | # False OR Unknown -> Unknown
-      | True              | Unknown(Bool)     | True                | # True OR Unknown -> True (short-circuit)
-      | Unknown(Bool)     | Unknown(Bool)     | Unknown(Bool)       |
-      | False             | Dynamic           | Unknown(Bool)       |
-      | Dynamic           | Dynamic           | Unknown(Bool)       |
-      | True.Mark(1)      | False.Mark(2)     | True.WithMarks(1,2) |
-      | False.Mark(1)     | Unknown(Bool).Mark(2) | Unknown(Bool).WithMarks(1,2) |
+      | A                 | B                 | ExpectedOutput      | Description (Optional)                   |
+      | False             | False             | False               |                                          |
+      | False             | True              | True                |                                          |
+      | True              | False             | True                |                                          |
+      | True              | True              | True                |                                          |
+      | False             | Unknown(Bool)     | Unknown(Bool)       | # Result depends on Unknown              |
+      | True              | Unknown(Bool)     | True                | # Short-circuit                          |
+      | Unknown(Bool)     | Unknown(Bool)     | Unknown(Bool)       |                                          |
+      | False             | Dynamic           | Unknown(Bool)       | # Result depends on Dynamic (as Unknown) |
+      | Dynamic           | Dynamic           | Unknown(Bool)       |                                          |
+      | True.Mark(1)      | False.Mark(2)     | True.WithMarks(1,2) |                                          |
+      | False.Mark(1)     | Unknown(Bool).Mark(2) | Unknown(Bool).WithMarks(1,2) |                                          |
 
     # Note on Value Syntax:
     # - True, False are cty.True, cty.False

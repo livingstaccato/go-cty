@@ -8,6 +8,7 @@ Feature: Simple JSON Value Marshaling and Unmarshaling
   unmarshaled from JSON strings using the SimpleJSONValue wrapper.
   This wrapper provides a direct JSON representation without cty-specific
   type information for dynamic values.
+  **Note:** cty value marks are NOT preserved during this SimpleJSONValue marshaling/unmarshaling process.
 
   Scenario Outline: Round-trip marshaling and unmarshaling of cty.Value via SimpleJSONValue
     # Covers test: TestSimpleJSONValue
@@ -38,3 +39,20 @@ Feature: Simple JSON Value Marshaling and Unmarshaling
     # - ExpectedUnmarshaledValue: Similar to InputValue, but type may change (e.g. Null(DynamicType), Tuple for List/Set)
     # - ExpectedUnmarshaledCtyType: The cty.Type of the ExpectedUnmarshaledValue.
     # - S=String, B=Bool, T=True, F=False. Keys in objects/maps are strings.
+
+  Scenario Outline: Marshaling Unknown or Dynamic cty.Values via SimpleJSONValue
+    Given a cty.Value <InputValue> of type <InputCtyType>
+    When the value is wrapped in SimpleJSONValue and marshaled to JSON
+    Then the resulting JSON string should be "<ExpectedJSONString>"
+    # Unmarshaling this specific JSON output might lead to Null(DynamicType) or error
+
+    Examples:
+      | InputValue         | InputCtyType | ExpectedJSONString | Description                                  |
+      | Unknown(String)    | String       | "null"             | Unknown value marshals as JSON null          |
+      | Dynamic            | DynamicType  | "null"             | Unknown DynamicVal marshals as JSON null       |
+      | TrueAsDynamic      | DynamicType  | "true"             | Known DynamicVal marshals as its concrete JSON |
+      | Null(String).AsDynamic() | DynamicType  | "null"         | Null DynamicVal marshals as JSON null        |
+
+    # Note: The standard json.Marshal used by SimpleJSONValue might error on UnknownVal
+    # if it cannot be represented as null. cty's default is to make unknown appear as null.
+    # Unmarshaling "null" back via SimpleJSONValue will always result in NullVal(DynamicPseudoType).

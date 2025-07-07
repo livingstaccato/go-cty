@@ -32,9 +32,9 @@ Feature: cty Function Core Behavior
       | [Number (AllowDynamic)]     | <none>   | StaticReturnType(Number) | [String("hello")]     |              | occur         | Type mismatch even with AllowDynamicType         |
 
     Examples: Marked Values in Type Logic
-      | Params        | VarParam                   | TypeLogic (Dynamic, checks marks) | Args                                      | ExpectedType | ErrorOccur    | Description                                       |
-      | [List(Dyn)]   | <none>                     | Returns Number, errors if arg marked | [List(String("ok").Mark("m"))]          | Number       | not occur     | Type func receives marked args, returns type      |
-      | [List(Str)]   | List(String) (AllowMarked) | Returns Number, errors if arg marked | [List("one"), List("two".Mark("m"))]    | Number       | not occur     | Type func receives marked varargs, returns type   |
+      | Params        | VarParam                   | TypeLogic                                     | Args                                      | ExpectedType | ErrorOccur    | Description                                       |
+      | [List(Dyn)]   | <none>                     | Dynamic (Returns Number; errors if arg marked)| [List(String("ok").Mark("m"))]          | Number       | not occur     | Type func receives marked args, returns type      |
+      | [List(Str)]   | List(String) (AllowMarked) | Dynamic (Returns Number; errors if arg marked)| [List("one"), List("two".Mark("m"))]    | Number       | not occur     | Type func receives marked varargs, returns type   |
 
     # Note on syntax:
     # Params: [Type1, Type2 (Option=Value), ...] where Option can be AllowDynamic, etc.

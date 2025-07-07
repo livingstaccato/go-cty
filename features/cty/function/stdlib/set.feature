@@ -24,13 +24,18 @@ Feature: Standard Library Set Operations
       | [Set(S("5")), Unknown(Set(Number))]           | Unknown(Set(String)).RefineNotNull() | Union with unknown set results in unknown set       |
       | [Set(S("5")), Set(Unknown(String))]           | Set(S("5"), Unknown(String))         | Union with set containing unknown element           |
 
+    Examples: With Marks
+      | InputSets                                           | ExpectedUnionSet                          |
+      | [Set(S("a").M(m1)), Set(S("b").M(m2)).M(s2)]        | Set(S("a"), S("b")).WithMarks(m1,m2,s2)    |
+      | [Unknown(Set(S)).M(s1), Set(S("a")).M(s2)]          | Unknown(Set(S)).RefineNotNull().WithMarks(s1,s2) |
+
   Scenario Outline: Set Intersection operation
     # Covers test: TestSetIntersection
     Given a list of cty Sets <InputSets>
     When the SetIntersection function is called with these sets
     Then the result should be a cty Set <ExpectedIntersectionSet> containing common elements
 
-    Examples:
+    Examples: Basic Intersection
       | InputSets                                     | ExpectedIntersectionSet              | Description                                         |
       | [EmptySet(String)]                            | EmptySet(String)                     | Intersection of one empty set                         |
       | [EmptySet(String), EmptySet(String)]          | EmptySet(String)                     | Intersection of two empty sets                      |
@@ -41,15 +46,20 @@ Feature: Standard Library Set Operations
       | [Set(S("5")), Unknown(Set(Number))]           | Unknown(Set(String)).RefineNotNull() | Intersection with unknown set                       |
       | [Set(S("5")), Set(Unknown(String))]           | Unknown(Set(String)).RefineNotNull() | Intersection with set containing unknown element    |
 
+    Examples: Intersection With Marks
+      | InputSets                                           | ExpectedIntersectionSet                   |
+      | [Set(S("a").M(m1),S("b")), Set(S("a").M(m2)).M(s2)]  | Set(S("a")).WithMarks(m1,m2,s2)            | # Marks from common element and sets are combined
+      | [Unknown(Set(S)).M(s1), Set(S("a")).M(s2)]          | Unknown(Set(S)).RefineNotNull().WithMarks(s1,s2) |
+
   Scenario Outline: Set Subtraction operation (A - B)
     # Covers test: TestSetSubtract
     Given cty Set A: <SetA>
     And cty Set B: <SetB>
     When the SetSubtract function is called with Set A and Set B
-    Then the result should be a cty Set <ExpectedResultSeth> containing elements in A but not in B
+    Then the result should be a cty Set <ExpectedResultSet> containing elements in A but not in B
 
-    Examples:
-      | SetA                                  | SetB                  | ExpectedResultSeth                   |
+    Examples: Basic Subtraction
+      | SetA                                  | SetB                  | ExpectedResultSet                    |
       | EmptySet(String)                      | EmptySet(String)      | EmptySet(String)                     |
       | Set(True)                             | EmptySet(String)      | Set(String("true"))                  |
       | Set(True)                             | Set(False)            | Set(True)                            |
@@ -58,15 +68,20 @@ Feature: Standard Library Set Operations
       | Set(S("5"))                           | Unknown(Set(Number))  | Unknown(Set(String)).RefineNotNull() |
       | Set(S("5"))                           | Set(Unknown(String))  | Unknown(Set(String)).RefineNotNull() |
 
+    Examples: Subtraction With Marks
+      | SetA                                  | SetB                  | ExpectedResultSet                    |
+      | Set(S("a").M(m1),S("b").M(m2)).M(s1)   | Set(S("b").M(m3)).M(s2)| Set(S("a")).WithMarks(m1,s1,s2)      | # Marks from A, A's elements, and B are relevant
+      | Unknown(Set(S)).M(s1)                 | Set(S("any")).M(s2)   | Unknown(Set(S)).RefineNotNull().WithMarks(s1,s2) |
+
   Scenario Outline: Set Symmetric Difference operation
     # Covers test: TestSetSymmetricDifference
     Given cty Set A: <SetA>
     And cty Set B: <SetB>
     When the SetSymmetricDifference function is called with Set A and Set B
-    Then the result should be a cty Set <ExpectedResultSeth> containing elements in either A or B, but not both
+    Then the result should be a cty Set <ExpectedResultSet> containing elements in either A or B, but not both
 
-    Examples:
-      | SetA                                  | SetB                  | ExpectedResultSeth                   |
+    Examples: Basic Symmetric Difference
+      | SetA                                  | SetB                  | ExpectedResultSet                    |
       | EmptySet(String)                      | EmptySet(String)      | EmptySet(String)                     |
       | Set(True)                             | EmptySet(String)      | Set(String("true"))                  |
       | Set(True)                             | Set(False)            | Set(True, False)                     |
@@ -74,6 +89,26 @@ Feature: Standard Library Set Operations
       | Set(S("a"))                           | EmptySet(DynamicType) | Set(S("a"))                          |
       | Set(S("5"))                           | Unknown(Set(Number))  | Unknown(Set(String)).RefineNotNull() |
       | Set(S("5"))                           | Set(Unknown(Number))  | Unknown(Set(String)).RefineNotNull() | # Assuming Number can convert to String for comparison context
+
+    Examples: Symmetric Difference With Marks
+      | SetA                                  | SetB                  | ExpectedResultSet                    |
+      | Set(S("a").M(m1),S("b").M(m2)).M(s1)   | Set(S("b").M(m3),S("c").M(m4)).M(s2) | Set(S("a"),S("c")).WithMarks(m1,m2,m3,m4,s1,s2) | # All marks from distinct elements and sets combined
+      | Unknown(Set(S)).M(s1)                 | Set(S("any")).M(s2)   | Unknown(Set(S)).RefineNotNull().WithMarks(s1,s2) |
+
+  Scenario Outline: Set operations with invalid input types
+    Given a cty.Value <Arg1>
+    And a cty.Value <Arg2> (if applicable for binary ops)
+    When the <SetFunction> function is called with these arguments
+    Then an error should occur with a message containing "set required"
+
+    Examples:
+      | SetFunction            | Arg1          | Arg2          |
+      | SetUnion               | List(S("a"))  | Set(S("b"))   | # Arg1 is not a set
+      | SetUnion               | Set(S("a"))   | String("b")   | # Arg2 is not a set
+      | SetIntersection        | String("a")   | Set(S("b"))   |
+      | SetSubtract            | List(S("a"))  | Set(S("b"))   |
+      | SetSubtract            | Set(S("a"))   | Number(1)     |
+      | SetSymmetricDifference | Map(a=S)      | Set(S("b"))   |
 
     # Note on Value Syntax:
     # - S("x") for cty.StringVal("x")
@@ -84,3 +119,4 @@ Feature: Standard Library Set Operations
     # - DynamicType for cty.DynamicPseudoType
     # - EmptyObject for cty.EmptyObjectVal
     # - .RefineNotNull() indicates the unknown set result is refined.
+    # - .M(mark) or .WithMarks(m1,m2) for marks.

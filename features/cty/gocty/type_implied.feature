@@ -60,3 +60,36 @@ Feature: Implied cty.Type from Go Native Value
     # - S=String, N=Number.
     # - For pointer examples, assume corresponding non-pointer variables exist (e.g., intVal, boolVal).
     # - 'testStruct' is assumed to be the struct defined in the Go test with appropriate 'cty' tags.
+
+  Scenario Outline: Error conditions when inferring cty.Type from unsupported Go values
+    # Covers implied error handling for ImpliedType
+    Given a Go native value <GoValue> of an unsupported Go type <GoTypeDescription>
+    When the ImpliedType function is called with this Go value
+    Then an error should occur with a message containing "<ExpectedErrorMessagePart>"
+
+    Examples: Unsupported Go Types
+      | GoValue        | GoTypeDescription | ExpectedErrorMessagePart                        |
+      | make(chan int) | Go channel        | "unsupported type for cty.ImpliedType: chan int"  | # Error message may vary slightly
+      | func(){}       | Go function       | "unsupported type for cty.ImpliedType: func()"    |
+
+  Scenario: Inferring cty.Type from Go struct without cty tags
+    # Covers behavior for structs relying on exported field names
+    Given a Go native value of a struct type "MySimpleStruct" defined as:
+      """
+      type MySimpleStruct struct {
+          Name string
+          Age  int
+          nonExported string // should be ignored
+      }
+      """
+    And an instance "simpleStructInstance" of "MySimpleStruct"
+    When the ImpliedType function is called with "simpleStructInstance"
+    Then the inferred cty.Type should be Object("Name"=String, "Age"=Number)
+    And no error should occur
+
+  Scenario: Inferring cty.Type from Go interface{} holding a concrete value
+    # Covers behavior for interface{} types
+    Given a Go native value created from `interface{}(int(5))` of Go type `interface{}`
+    When the ImpliedType function is called with this Go value
+    Then the inferred cty.Type should be Number
+    And no error should occur
