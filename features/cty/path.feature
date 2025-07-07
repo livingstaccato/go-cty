@@ -48,7 +48,7 @@ Feature: cty Path Operations
     Then "PathA.Equals(PathB)" should return <IsEqual>
     And "PathA.HasPrefix(PathB)" should return <IsPrefix> (B is prefix of A)
 
-    Examples:
+    Examples: Path Equality and Prefix
       | PathASteps                                  | PathBSteps                                  | IsEqual | IsPrefix |
       | <nil>                                       | <nil>                                       | true    | true     |
       | []                                          | []                                          | true    | true     |
@@ -59,6 +59,14 @@ Feature: cty Path Operations
       | [Attr("a"), Index(Str("k")), Attr("b")]     | [Attr("a"), Index(Str("k"))]                | false   | true     | # B is a prefix of A
       | [Attr("a"), Index(Num(0.0))]                | [Attr("a"), Index(Num(0))]                  | true    | true     | # Number 0.0 equals 0
       | [Attr("a"), Index(Num(1))]                  | [Attr("a"), Index(Num(0))]                  | false   | false    |
+      # Convenience Constructors
+      | [Attr("attr")]                              | GetAttrPath("attr")                         | true    | true     |
+      | [Index(Num(0))]                             | IndexPath(Num(0))                           | true    | true     |
+      | [Index(Num(0))]                             | IndexIntPath(0)                             | true    | true     |
+      | [Index(Str("key"))]                         | IndexStringPath("key")                      | true    | true     |
+      | [Attr("attr"), Index(Num(0))]               | GetAttrPath("attr").IndexInt(0)             | true    | true     |
+      | [Attr("attr"), Index(Str("key"))]           | GetAttrPath("attr").IndexString("key")      | true    | true     |
+
 
     # Note on Syntax:
     # - Values: String("h"), Number(0) or Num(0), Str("k"), True, List(...), Map(...), Obj(...), EmptyList(Type), EmptyObj, Null(Type), Unknown(Type) or Unk(Type), NilValue

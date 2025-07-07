@@ -9,14 +9,18 @@ Feature: Capsule Type Conversion
     Given a capsule type "capTyString" for Go type "string" with custom operations:
       | Operation      | CustomLogic                                                                 |
       | GoString       | returns "capTy(<string_value>)"                                             |
-      | TypeGoString   | returns "capTy" (this string is used in some error messages like "capTy required") |
+      | TypeGoString   | returns "test thingy" (this name is used in error messages like "test thingy required") |
       | RawEquals      | compares underlying string values for equality                              |
       | ConversionFrom | allows conversion ONLY from cty.String, creating capTyString(source_string_value) |
       | ConversionTo   | allows conversion ONLY to cty.String, returning cty.StringVal(encapsulated_string)   |
     And a capsule type "capTyInt" for Go type "int" with custom operations:
-      | Operation      | CustomLogic                                                                 |
-      | ConversionFrom | if source is "capTyString", creates capTyInt by parsing the string to int   |
-      |                | if source is "capTyInt", creates capTyString from int string representation |
+      | Operation      | CustomLogic                                                                                                |
+      | ConversionFrom | allows conversion from "capTyString" to "capTyInt" by parsing the encapsulated string to an int (this specific op is not directly exercised by the examples below) |
+    # Note on capTyInt -> capTyString conversion:
+    # The conversion from "capTyInt" to "capTyString" in the examples below works implicitly because:
+    # 1. "capTyInt" encapsulates an 'int'.
+    # 2. The 'int' value is first converted to a standard 'cty.String' value using cty's built-in rules (e.g., 42 becomes "42").
+    # 3. "capTyString" can then be created from this intermediate 'cty.String' value via its 'ConversionFrom' operation.
 
   Scenario Outline: Converting capsule values
     # Covers test: TestConvertCapsuleType

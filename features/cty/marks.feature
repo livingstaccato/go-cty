@@ -137,22 +137,24 @@ Feature: cty Value Marks
   Scenario Outline: Deep unmarking with paths and re-marking (UnmarkDeepWithPaths, MarkWithPaths)
     # Covers test: TestPathValueMarks
     Given a cty.Value <OriginalMarkedValue>
-    When it is deep unmarked with paths, yielding <BaseUnmarkedValue> and <PathValueMarksList>
-    And then <BaseUnmarkedValue> is re-marked using <PathValueMarksList>
+    When it is deep unmarked with paths, yielding <BaseUnmarkedValue> and <ActualPathValueMarksList>
+    Then <BaseUnmarkedValue> should be RawEqualTo <ExpectedBaseUnmarkedValue>
+    And <ActualPathValueMarksList> should be equivalent to <ExpectedPathValueMarksList>
+    When <BaseUnmarkedValue> is re-marked using <ActualPathValueMarksList>
     Then the re-marked value should be RawEqualTo <OriginalMarkedValue>
-    And <BaseUnmarkedValue> should be RawEqualTo <ExpectedBaseUnmarkedValue>
-    And <PathValueMarksList> should correctly represent the original marks and their paths
 
     Examples:
-      | OriginalMarkedValue                       | ExpectedBaseUnmarkedValue        | Description                                 |
-      | String("a")                               | String("a")                      | Unmarked primitive                          |
-      | Number(1).Mark("a")                       | Number(1)                        | Marked primitive                            |
-      | List(N(1).Mark(a), N(2))                  | List(N(1), N(2))                 | List with one marked element                |
-      | List(N(1).M(a),N(2).M(b)).M(c)             | List(N(1),N(2))                  | Marked list with marked elements            |
-      | EmptyList(String).Mark("c")               | EmptyList(String)                | Marked empty list                           |
-      | Map(a=S("b").M(c), x=S("y").M(z))          | Map(a=S("b"), x=S("y"))          | Map with marked elements                    |
-      | Obj(env=List(Obj(vars=Map(b=S("s").M(sen),f=S("s").M(sen))))) | Obj(env=List(Obj(vars=Map(b=S("s"),f=S("s"))))) | Regression test for path array reuse      |
-      # The PathValueMarksList for each example would be detailed, e.g. for Number(1).Mark("a"): [{Path{}, ["a"]}]
+      | OriginalMarkedValue                                                 | ExpectedBaseUnmarkedValue                               | ExpectedPathValueMarksList                                                                                                |
+      | String("a")                                                         | String("a")                                             | []                                                                                                                        |
+      | Number(1).Mark("a")                                                 | Number(1)                                               | [{P:[], M:["a"]}]                                                                                                         |
+      | List(N(1).Mark(a), N(2))                                            | List(N(1), N(2))                                        | [{P:[Idx(0)], M:["a"]}]                                                                                                   |
+      | List(N(1).M(a),N(2).M(b)).M(c)                                       | List(N(1),N(2))                                         | [{P:[], M:["c"]}, {P:[Idx(0)], M:["a"]}, {P:[Idx(1)], M:["b"]}]                                                              |
+      | EmptyList(String).Mark("c")                                         | EmptyList(String)                                       | [{P:[], M:["c"]}]                                                                                                         |
+      | Map(a=S("b").M(c), x=S("y").M(z))                                    | Map(a=S("b"), x=S("y"))                                 | [{P:[IdxStr(a)], M:["c"]}, {P:[IdxStr(x)], M:["z"]}]                                                                       |
+      | Tuple(N(1).M(a), S("y").M(z), Obj(x=True).M(o))                       | Tuple(N(1), S("y"), Obj(x=True))                        | [{P:[Idx(0)], M:["a"]}, {P:[Idx(1)], M:["z"]}, {P:[Idx(2)], M:["o"]}]                                                       |
+      | Set(N(1).M(a), N(2).M(z))                                             | Set(N(1), N(2))                                         | [{P:[], M:["a","z"]}]                                                                                                     | # Marks on set elements aggregate to the set itself for PathValueMarks
+      | Obj(x=List(N(3).M(a),N(5).M(b)).M(c,d), y=S("y").M(e), z=True.M(f)).M(g) | Obj(x=List(N(3),N(5)), y=S("y"), z=True)                 | [{P:[],M:["g"]},{P:[Attr(x)],M:["c","d"]},{P:[Attr(x),Idx(0)],M:["a"]},{P:[Attr(x),Idx(1)],M:["b"]},{P:[Attr(y)],M:["e"]},{P:[Attr(z)],M:["f"]}] |
+      | Obj(env=List(Obj(vars=Map(bar=S("s").M(sen),foo=S("s").M(sen)))))     | Obj(env=List(Obj(vars=Map(bar=S("s"),foo=S("s")))))     | [{P:[Attr(env),Idx(0),Attr(vars),IdxStr(bar)],M:["sen"]},{P:[Attr(env),Idx(0),Attr(vars),IdxStr(foo)],M:["sen"]}]           |
 
   Scenario: Re-applying PathValueMarks to an already marked value
     # Covers test: TestReapplyMarks

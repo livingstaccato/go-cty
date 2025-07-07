@@ -136,66 +136,178 @@ Feature: cty.Value Operations
       | Map(g=S("h"))         | String("g") | HasIndex       | True           |
       | Unknown(Map(S))       | String("g") | HasIndex       | Unknown(B).NotNull |
 
-  Scenario Outline: cty.Value logical operations (Not, And, Or)
-    # Covers test: TestValueNot, TestValueAnd, TestValueOr
+  Scenario Outline: Value Logical Not (Not)
+    # Covers test: TestValueNot
     Given a cty.Value <Operand1> (Bool)
-    And an optional cty.Value <Operand2> (Bool) for binary operations
-    When the logical <Operation> is performed
+    When <Operand1> Not is performed
+    Then the result should be cty.Bool <ExpectedResult>
+    And marks should be propagated
+
+    Examples:
+      | Operand1        | ExpectedResult         |
+      | True            | False                  |
+      | False           | True                   |
+      | Unknown(Bool)   | Unknown(Bool).NotNull  |
+      | Dynamic         | Unknown(Bool).NotNull  |
+      | True.Mark(1)    | False.Mark(1)          |
+
+  Scenario Outline: Value Logical And (And)
+    # Covers test: TestValueAnd
+    Given a cty.Value LHS <LHSValue> (Bool)
+    And a cty.Value RHS <RHSValue> (Bool)
+    When <LHSValue> And <RHSValue> is performed
     Then the result should be cty.Bool <ExpectedResult>
     And marks should be propagated/combined
 
-    Examples: Not (Unary)
-      | Operand1      | Operand2 | Operation | ExpectedResult    |
-      | True          |          | Not       | False             |
-      | Unknown(Bool) |          | Not       | Unknown(B).NotNull|
+    Examples:
+      | LHSValue      | RHSValue      | ExpectedResult         |
+      | False         | False         | False                  |
+      | False         | True          | False                  |
+      | True          | False         | False                  |
+      | True          | True          | True                   |
+      | Unknown(Bool) | Unknown(Bool) | Unknown(Bool).NotNull  |
+      | True          | Unknown(Bool) | Unknown(Bool).NotNull  |
+      | False         | Unknown(Bool) | False                  | # Short-circuit
+      | Dynamic       | False         | False                  | # Short-circuit
+      | True.Mark(1)  | True.Mark(1)  | True.Mark(1)           |
 
-    Examples: And
-      | Operand1      | Operand2      | Operation | ExpectedResult    |
-      | True          | True          | And       | True              |
-      | False         | Unknown(Bool) | And       | False             | # Short-circuit
-      | True.Mark(1)  | True.Mark(1)  | And       | True.Mark(1)      |
-
-    Examples: Or
-      | Operand1      | Operand2      | Operation | ExpectedResult    |
-      | False         | False         | Or        | False             |
-      | True          | Unknown(Bool) | Or        | True              | # Short-circuit
-
-  Scenario Outline: cty.Value numeric comparisons (LessThan, GreaterThan, LessThanOrEqualTo, GreaterThanOrEqualTo)
-    # Covers test: TestLessThan, TestGreaterThan, TestLessThanOrEqualTo, TestGreaterThanOrEqualTo
-    Given a cty.Value <Operand1> (Number)
-    And a cty.Value <Operand2> (Number)
-    When the comparison <Operation> is performed
+  Scenario Outline: Value Logical Or (Or)
+    # Covers test: TestValueOr
+    Given a cty.Value LHS <LHSValue> (Bool)
+    And a cty.Value RHS <RHSValue> (Bool)
+    When <LHSValue> Or <RHSValue> is performed
     Then the result should be cty.Bool <ExpectedResult>
     And marks should be propagated/combined
 
-    Examples: LessThan
-      | Operand1         | Operand2         | Operation | ExpectedResult    |
-      | Number(0)        | Number(1)        | LessThan  | True              |
-      | Unk(N).RefineMaxBound(0,true) | Number(1) | LessThan | True        | # Deduced
-      | Number(0).Mark(1)| Number(1).Mark(1)| LessThan  | True.Mark(1)      |
+    Examples:
+      | LHSValue      | RHSValue      | ExpectedResult         |
+      | False         | False         | False                  |
+      | False         | True          | True                   |
+      | True          | False         | True                   |
+      | True          | True          | True                   |
+      | Unknown(Bool) | Unknown(Bool) | Unknown(Bool).NotNull  |
+      | True          | Unknown(Bool) | True                   | # Short-circuit
+      | False         | Unknown(Bool) | Unknown(Bool).NotNull  |
+      | Dynamic       | True          | True                   | # Short-circuit
+      | True.Mark(1)  | False.Mark(1) | True.Mark(1)           |
 
-  Scenario: Value GoString representation
+  Scenario Outline: Value Less Than Comparison (LessThan)
+    # Covers test: TestLessThan
+    Given a cty.Value LHS <LHSValue> (Number)
+    And a cty.Value RHS <RHSValue> (Number)
+    When <LHSValue> LessThan <RHSValue> is performed
+    Then the result should be cty.Bool <ExpectedResult>
+    And marks should be propagated/combined
+
+    Examples:
+      | LHSValue                      | RHSValue        | ExpectedResult         |
+      | Number(0)                     | Number(1)       | True                   |
+      | Number(1)                     | Number(0)       | False                  |
+      | Number(0)                     | Number(0)       | False                  |
+      | Unknown(N)                    | Unknown(N)      | Unknown(Bool).NotNull  |
+      | Unk(N).RefineMaxBound(0,true) | Number(1)       | True                   | # Deduced
+      | Num(0).Mark(1)                | Num(1).Mark(1)  | True.Mark(1)           |
+
+  Scenario Outline: Value Greater Than Comparison (GreaterThan)
+    # Covers test: TestGreaterThan
+    Given a cty.Value LHS <LHSValue> (Number)
+    And a cty.Value RHS <RHSValue> (Number)
+    When <LHSValue> GreaterThan <RHSValue> is performed
+    Then the result should be cty.Bool <ExpectedResult>
+    And marks should be propagated/combined
+
+    Examples:
+      | LHSValue                       | RHSValue        | ExpectedResult         |
+      | Number(1)                      | Number(0)       | True                   |
+      | Number(0)                      | Number(1)       | False                  |
+      | Unk(N).RefineMinBound(2,true)  | Number(1)       | True                   | # Deduced
+
+  Scenario Outline: Value Less Than Or Equal Comparison (LessThanOrEqualTo)
+    # Covers test: TestLessThanOrEqualTo
+    Given a cty.Value LHS <LHSValue> (Number)
+    And a cty.Value RHS <RHSValue> (Number)
+    When <LHSValue> LessThanOrEqualTo <RHSValue> is performed
+    Then the result should be cty.Bool <ExpectedResult>
+    And marks should be propagated/combined
+
+    Examples:
+      | LHSValue        | RHSValue        | ExpectedResult         |
+      | Number(0)       | Number(1)       | True                   |
+      | Number(0)       | Number(0)       | True                   |
+      | Number(1)       | Number(0)       | False                  |
+      | Unknown(N)      | Unknown(N)      | Unknown(Bool).NotNull  |
+
+  Scenario Outline: Value Greater Than Or Equal Comparison (GreaterThanOrEqualTo)
+    # Covers test: TestGreaterThanOrEqualTo
+    Given a cty.Value LHS <LHSValue> (Number)
+    And a cty.Value RHS <RHSValue> (Number)
+    When <LHSValue> GreaterThanOrEqualTo <RHSValue> is performed
+    Then the result should be cty.Bool <ExpectedResult>
+    And marks should be propagated/combined
+
+    Examples:
+      | LHSValue        | RHSValue        | ExpectedResult         |
+      | Number(1)       | Number(0)       | True                   |
+      | Number(0)       | Number(0)       | True                   |
+      | Number(0)       | Number(1)       | False                  |
+      | Unknown(N)      | Unknown(N)      | Unknown(Bool).NotNull  |
+
+  Scenario Outline: Value GoString representation (GoString)
     # Covers test: TestValueGoString
-    # Examples of GoString representations for various cty values
-    Given a cty.Value, e.g., NullVal(DynamicPseudoType)
+    Given a cty.Value <ValueInstance>
     When its GoString() representation is obtained
-    Then it should be "cty.NullVal(cty.DynamicPseudoType)"
+    Then the result should be the string "<ExpectedGoString>"
 
-    Given a cty.Value, e.g., UnknownVal(String).Refine().NotNull().StringPrefix("a-").NewValue()
-    When its GoString() representation is obtained
-    Then it should be "cty.UnknownVal(cty.String).Refine().NotNull().StringPrefixFull(\"a-\").NewValue()"
-    # ... more examples for other types, unknowns, nulls, collections, marks ...
+    Examples:
+      | ValueInstance                                  | ExpectedGoString                                                                     |
+      | NullVal(DynamicType)                           | "cty.NullVal(cty.DynamicPseudoType)"                                                 |
+      | NullVal(String)                                | "cty.NullVal(cty.String)"                                                            |
+      | NullVal(Tuple([S,B]))                          | "cty.NullVal(cty.Tuple([]cty.Type{cty.String, cty.Bool}))"                           |
+      | UnknownVal(DynamicType)                        | "cty.DynamicVal"                                                                     |
+      | UnknownVal(S)                                  | "cty.UnknownVal(cty.String)"                                                         |
+      | UnknownVal(Tuple([S,B]))                       | "cty.UnknownVal(cty.Tuple([]cty.Type{cty.String, cty.Bool}))"                        |
+      | UnknownVal(S).RefineNotNull()                  | "cty.UnknownVal(cty.String).RefineNotNull()"                                         |
+      | UnknownVal(S).Refine().NotNull().StringPrefix("a-").NewValue() | "cty.UnknownVal(cty.String).Refine().NotNull().StringPrefixFull(\"a-\").NewValue()" |
+      | UnknownVal(S).Refine().NotNull().StringPrefix("foo").NewValue() | "cty.UnknownVal(cty.String).Refine().NotNull().StringPrefixFull(\"fo\").NewValue()" | # Truncated
+      | UnknownVal(N).Refine().NumberRangeInclusive(Num(0), Unk(N)).NewValue() | "cty.UnknownVal(cty.Number).Refine().NumberLowerBound(cty.NumberIntVal(0), true).NewValue()" |
+      | UnknownVal(N).Refine().NumberRangeInclusive(Num(0), Num(1)).NewValue() | "cty.UnknownVal(cty.Number).Refine().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(1), true).NewValue()" |
+      | StringVal("")                                  | "cty.StringVal(\"\")"                                                                |
+      | StringVal("hello")                             | "cty.StringVal(\"hello\")"                                                           |
+      | Num(0)                                         | "cty.NumberIntVal(0)"                                                                |
+      | Num(1.2)                                       | "cty.NumberFloatVal(1.2)"                                                            |
+      | Num(1.0)                                       | "cty.NumberIntVal(1)"                                                                | # Whole float
+      | Num("3.14159265358979323846264338327950288419716939937510582097494459") | "cty.MustParseNumberVal(\"3.14159265358979323846264338327950288419716939937510582097494459\")" |
+      | True                                           | "cty.True"                                                                           |
+      | False                                          | "cty.False"                                                                          |
+      | EmptyList(String)                              | "cty.ListValEmpty(cty.String)"                                                       |
+      | List(True)                                     | "cty.ListVal([]cty.Value{cty.True})"                                                 |
+      | EmptySet(String)                               | "cty.SetValEmpty(cty.String)"                                                        |
+      | Set(True)                                      | "cty.SetVal([]cty.Value{cty.True})"                                                  |
+      | EmptyTupleVal                                  | "cty.EmptyTupleVal"                                                                  |
+      | Tuple(True)                                    | "cty.TupleVal([]cty.Value{cty.True})"                                                |
+      | EmptyMap(String)                               | "cty.MapValEmpty(cty.String)"                                                        |
+      | Map("boop"=True)                               | "cty.MapVal(map[string]cty.Value{\"boop\":cty.True})"                               | # Keys sorted
+      | EmptyObjectVal                                 | "cty.EmptyObjectVal"                                                                 |
+      | Obj("foo"=True)                                | "cty.ObjectVal(map[string]cty.Value{\"foo\":cty.True})"                             | # Keys sorted
 
-  Scenario: Checking if a value has a wholly known type (HasWhollyKnownType)
+  Scenario Outline: Checking if a value has a wholly known type (HasWhollyKnownType)
     # Covers test: TestHasWhollyKnownType
-    Given a cty.Value, e.g., ObjectVal(map[string]Value{"dyn": DynamicVal})
-    When HasWhollyKnownType() is checked
-    Then the result should be false
+    Given a cty.Value <ValueInstance>
+    When HasWhollyKnownType() is checked on <ValueInstance>
+    Then the result should be <ExpectedKnownTypeResult>
 
-    Given a cty.Value, e.g., NullVal(Object(map[string]Type{"dyn": DynamicPseudoType}))
-    When HasWhollyKnownType() is checked
-    Then the result should be true
-    # ... more examples ...
+    Examples:
+      | ValueInstance                                           | ExpectedKnownTypeResult |
+      | Dynamic                                                 | false                   |
+      | Obj(dyn=Dynamic)                                        | false                   |
+      | Null(Obj(dyn=DynamicType))                              | true                    |
+      | Tuple(S("a"), Null(DynamicType))                        | true                    |
+      | List(Obj(null=Null(DynamicType)))                       | true                    |
+      | List(Null(Obj(dyn=DynamicType)))                        | true                    |
+      | Obj(tuple=Tuple(S("a"),Null(DynamicType)))              | true                    |
+      | Obj(tuple=Tuple(Obj(dyn=Dynamic)))                      | false                   |
+      | StringVal("known")                                      | true                    |
+      | List(StringVal("known"))                                | true                    |
 
   Scenario Outline: Checking set element presence (HasElement)
     # Covers test: TestHasElement

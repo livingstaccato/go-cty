@@ -103,6 +103,27 @@ Feature: Standard Library String Manipulation Functions
       | "wé́́é́́é́́!"| Number(2) | Number(2) | "é́́é́́"        |
       | "😸😾"       | Number(1) | Number(1) | "😾"              |
 
+  Scenario Outline: Extracting a substring (Substr function) - Error and Unknown Cases
+    # Covers implied error handling and unknown argument behavior for Substr
+    Given a cty String <InputString>
+    And a cty Value offset <Offset>
+    And a cty Value length <Length>
+    When the Substr function is called with input, offset, and length
+    Then an error should <ErrorOccur> with message part "<ErrorMessagePart>"
+    And if no error, the result should be cty String <ExpectedSubstring>
+
+    Examples: Invalid Offset/Length Types
+      | InputString    | Offset        | Length    | ErrorOccur | ErrorMessagePart        | ExpectedSubstring |
+      | String("hello")| String("a")   | Number(2) | occur      | "offset must be number" |                   |
+      | String("hello")| Number(0)     | True      | occur      | "length must be number" |                   |
+
+    Examples: Unknown Offset/Length or Input String
+      | InputString    | Offset          | Length          | ErrorOccur | ErrorMessagePart        | ExpectedSubstring      |
+      | String("hello")| Unknown(Number) | Number(2)       | not occur  |                         | Unknown(String)        |
+      | String("hello")| Number(0)       | Unknown(Number) | not occur  |                         | Unknown(String)        |
+      | Unknown(String)| Number(0)       | Number(2)       | not occur  |                         | Unknown(String)        |
+      # Note: .NotNull refinement is implied for Unknown(String) results from Substr function
+
   Scenario Outline: Joining a list of strings (Join function)
     # Covers test: TestJoin
     Given a cty String separator <Separator>
