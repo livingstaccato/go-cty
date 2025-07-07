@@ -39,39 +39,12 @@ Feature: Standard Library Regular Expression Functions
       | Pattern         | InputString    | ExpectedResult |
       | Unknown(String) | "135abc456def" | Dynamic        |
 
-  Scenario Outline: Finding all regex matches in a string (RegexAll function)
-    # Covers test: TestRegexAll
-    Given a cty String regular expression pattern <Pattern>
-    And a cty String <InputString> to search
-    When the RegexAll function is called with the pattern and input string
-    Then the result should be a cty List of <MatchResultType>, with values <ExpectedMatches>
-    And if the input string is Unknown, the result is Unknown List of the determined type, refined as NotNull
-    And if the pattern is Unknown, the result is Unknown List of DynamicType, refined as NotNull
-
-    Examples: No Capture Groups
-      | Pattern        | InputString            | MatchResultType | ExpectedMatches              |
-      | "[a-z]+"       | "135abc456def789"      | String          | [String("abc"), String("def")] |
-
-    Examples: Unnamed Capture Groups
-      | Pattern           | InputString      | MatchResultType    | ExpectedMatches                                           |
-      | "([0-9]*)([a-z]*)"| "135abc456def"   | Tuple(String,String) | [Tuple(S("135"),S("abc")), Tuple(S("456"),S("def"))]     |
-      | "([0-9]*)([a-z]*)"| Unknown(String)  | Tuple(String,String) | Unknown(List(Tuple(S,S)))                                 |
-
-    Examples: Named Capture Groups (URI Parsing)
-      | Pattern                                                                                                | InputString                                    | MatchResultType    | ExpectedMatches                                                                                                   |
-      | "^(?:(?P<scheme>[^:/?#]+):)?(?://(?P<authority>[^/?#]*))?(?P<path>[^?#]*)(?:\\?(?P<query>[^#]*))?(?:#(?P<fragment>.*))?$" | "http://www.ics.uci.edu/pub/ietf/uri/#Related" | Object             | [Obj(scheme="http", authority="www.ics.uci.edu", path="/pub/ietf/uri/", query=Null(S), fragment="Related")] |
-      | "(?P<num>[0-9]*)"                                                                                      | Unknown(String)  | Object(num=S)      | Unknown(List(Object(num=S)))                                                                      |
-
-    Examples: Unknown Pattern
-      | Pattern         | InputString    | MatchResultType | ExpectedMatches                |
-      | Unknown(String) | "135abc456def" | DynamicType     | Unknown(List(DynamicType))     |
-
     Examples: No Match (Result is Null of appropriate type)
-      | Pattern           | InputString         | ExpectedResult             |
-      | "[0-9]+"          | "abc"               | Null(String)               | # No digits in "abc"
-      | "([a-z])([0-9])"  | "abc123def"         | Null(Tuple(S,S))           | # Example: if pattern was "([x])([y])" it wouldn't match
-      | "(?P<word>[a-z]+)"| "123"               | Null(Object(word=S))       | # No letters in "123"
-      | "[a-z]+".Mark(p)  | String("123").Mark(s) | Null(String).WithMarks(p,s)| # Marks propagated to null result
+      | Pattern           | InputString           | ExpectedResult                |
+      | "[0-9]+"          | "abc"                 | Null(String)                  |
+      | "([x])([y])"      | "abc123def"           | Null(Tuple(String,String))    | # Non-matching groups
+      | "(?P<word>[0-9]+)"| "abc"                 | Null(Object(word=String))     | # Non-matching named group
+      | "[0-9]+".Mark(p)  | String("abc").Mark(s) | Null(String).WithMarks(p,s)   | # Marks propagated to null
 
   Scenario Outline: Finding all regex matches in a string (RegexAll function)
     # Covers test: TestRegexAll
