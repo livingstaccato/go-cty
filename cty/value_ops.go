@@ -267,6 +267,12 @@ func (val Value) Equals(other Value) Value {
 	case ty.IsObjectType():
 		oty := ty.typeImpl.(typeObject)
 		result = true
+		// The attributes are visited in Go's randomized map iteration order,
+		// so an unknown attribute must not end the comparison early. If any
+		// other attribute is definitely unequal then the objects are unequal
+		// whatever the unknown attribute turns out to be, and returning at the
+		// first unknown would make the result depend on the visit order.
+		sawUnknown := false
 		for attr, aty := range oty.AttrTypes {
 			lhs := Value{
 				ty: aty,
@@ -278,12 +284,16 @@ func (val Value) Equals(other Value) Value {
 			}
 			eq := lhs.Equals(rhs)
 			if !eq.IsKnown() {
-				return unknownResult()
+				sawUnknown = true
+				continue
 			}
 			if eq.False() {
 				result = false
 				break
 			}
+		}
+		if result && sawUnknown {
+			return unknownResult()
 		}
 	case ty.IsTupleType():
 		tty := ty.typeImpl.(typeTuple)
@@ -360,6 +370,10 @@ func (val Value) Equals(other Value) Value {
 		ety := ty.typeImpl.(typeMap).ElementTypeT
 		if len(val.v.(map[string]any)) == len(other.v.(map[string]any)) {
 			result = true
+			// As with objects above, the elements are visited in randomized
+			// order, so a definite difference must win over an unknown element
+			// regardless of which of the two is visited first.
+			sawUnknown := false
 			for k := range val.v.(map[string]any) {
 				if _, ok := other.v.(map[string]any)[k]; !ok {
 					result = false
@@ -375,12 +389,16 @@ func (val Value) Equals(other Value) Value {
 				}
 				eq := lhs.Equals(rhs)
 				if !eq.IsKnown() {
-					return unknownResult()
+					sawUnknown = true
+					continue
 				}
 				if eq.False() {
 					result = false
 					break
 				}
+			}
+			if result && sawUnknown {
+				return unknownResult()
 			}
 		}
 	case ty.IsCapsuleType():
