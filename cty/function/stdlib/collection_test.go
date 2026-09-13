@@ -2380,6 +2380,44 @@ func TestFlatten(t *testing.T) {
 	}
 }
 
+func TestSetproductTooManyElements(t *testing.T) {
+	pair := cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})
+	pairs := func(count int) []cty.Value {
+		ret := make([]cty.Value, count)
+		for i := range ret {
+			ret[i] = pair
+		}
+		return ret
+	}
+
+	// The length of the result is the product of the lengths of the
+	// arguments, which does not fit in an int once there are enough of
+	// them: 2^63 overflows to a negative number and 2^64 wraps to zero.
+	for _, count := range []int{63, 64} {
+		t.Run(fmt.Sprintf("%d two-element lists", count), func(t *testing.T) {
+			got, err := SetProduct(pairs(count)...)
+			if err == nil {
+				t.Fatalf("unexpected success\ngot length: %d", got.LengthInt())
+			}
+			if got, want := err.Error(), "result would have too many elements"; got != want {
+				t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+	}
+
+	// An empty argument still makes the whole product empty, however large
+	// the product of the other lengths would be.
+	t.Run("64 two-element lists and an empty list", func(t *testing.T) {
+		got, err := SetProduct(append(pairs(64), cty.ListValEmpty(cty.String))...)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if !got.IsKnown() || got.LengthInt() != 0 {
+			t.Fatalf("wrong result\ngot: %#v\nwant: an empty list", got)
+		}
+	})
+}
+
 func TestSetproduct(t *testing.T) {
 	tests := []struct {
 		Collections []cty.Value

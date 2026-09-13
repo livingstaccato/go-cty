@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -984,7 +985,7 @@ var SetProductFunc = function.New(&function.Spec{
 		var retMarks cty.ValueMarks
 
 		total := 1
-		var hasUnknownLength bool
+		var hasUnknownLength, hasEmpty, tooManyElements bool
 		for _, arg := range args {
 			arg, marks := arg.Unmark()
 			retMarks = cty.NewValueMarks(retMarks, marks)
@@ -999,7 +1000,20 @@ var SetProductFunc = function.New(&function.Spec{
 			// Because of our type checking function, we are guaranteed that
 			// all of the arguments are known, non-null values of types that
 			// support LengthInt.
-			total *= arg.LengthInt()
+			length := arg.LengthInt()
+			switch {
+			case length == 0:
+				hasEmpty = true
+			case total > math.MaxInt/length:
+				// The number of elements in the result cannot be represented
+				// as an int, and multiplying anyway would overflow: to a
+				// negative length that makes the allocation below panic, or
+				// all the way around to zero, which would silently return an
+				// empty result.
+				tooManyElements = true
+			default:
+				total *= length
+			}
 		}
 
 		if hasUnknownLength {
@@ -1061,7 +1075,7 @@ var SetProductFunc = function.New(&function.Spec{
 			return ret, nil
 		}
 
-		if total == 0 {
+		if hasEmpty {
 			// If any of the arguments was an empty collection then our result
 			// is also an empty collection, which we'll short-circuit here.
 			if retType.IsListType() {
@@ -1070,12 +1084,12 @@ var SetProductFunc = function.New(&function.Spec{
 			return cty.SetValEmpty(ety).WithMarks(retMarks), nil
 		}
 
-		subEtys := ety.TupleElementTypes()
-		product := make([][]cty.Value, total)
+		if tooManyElements {
+			return cty.NilVal, errors.New("result would have too many elements")
+		}
 
-		b := make([]cty.Value, total*len(args))
+		subEtys := ety.TupleElementTypes()
 		n := make([]int, len(args))
-		s := 0
 		argVals := make([][]cty.Value, len(args))
 		for i, arg := range args {
 			// We've already stored the marks in retMarks
@@ -1083,12 +1097,12 @@ var SetProductFunc = function.New(&function.Spec{
 			argVals[i] = arg.AsValueSlice()
 		}
 
-		for i := range product {
-			e := s + len(args)
-			pi := b[s:e]
-			product[i] = pi
-			s = e
-
+		// cty.TupleVal copies the elements it is given, so one scratch slice
+		// can be reused for every tuple instead of allocating backing storage
+		// for the entire product and then copying all of it again.
+		elems := make([]cty.Value, len(args))
+		productVals := make([]cty.Value, total)
+		for i := range productVals {
 			for j, n := range n {
 				val := argVals[j][n]
 				ty := subEtys[j]
@@ -1101,8 +1115,9 @@ var SetProductFunc = function.New(&function.Spec{
 						return cty.NilVal, fmt.Errorf("failed to convert argVals[%d][%d] to %s; this is a bug in cty", j, n, ty.FriendlyName())
 					}
 				}
-				pi[j] = val
+				elems[j] = val
 			}
+			productVals[i] = cty.TupleVal(elems)
 
 			for j := len(n) - 1; j >= 0; j-- {
 				n[j]++
@@ -1111,11 +1126,6 @@ var SetProductFunc = function.New(&function.Spec{
 				}
 				n[j] = 0
 			}
-		}
-
-		productVals := make([]cty.Value, total)
-		for i, vals := range product {
-			productVals[i] = cty.TupleVal(vals)
 		}
 
 		if retType.IsListType() {
