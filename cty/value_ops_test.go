@@ -8,6 +8,79 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+func TestValueEqualsUnknownAndDifference(t *testing.T) {
+	unknownResult := UnknownVal(Bool).RefineNotNull()
+
+	tests := map[string]struct {
+		LHS      Value
+		RHS      Value
+		Expected Value
+	}{
+		"object with an unknown attribute and a different attribute": {
+			ObjectVal(map[string]Value{
+				"a": UnknownVal(String),
+				"b": StringVal("z"),
+			}),
+			ObjectVal(map[string]Value{
+				"a": StringVal("x"),
+				"b": StringVal("y"),
+			}),
+			False,
+		},
+		"object with an unknown attribute and otherwise equal": {
+			ObjectVal(map[string]Value{
+				"a": UnknownVal(String),
+				"b": StringVal("y"),
+			}),
+			ObjectVal(map[string]Value{
+				"a": StringVal("x"),
+				"b": StringVal("y"),
+			}),
+			unknownResult,
+		},
+		"map with an unknown element and a different element": {
+			MapVal(map[string]Value{
+				"a": UnknownVal(String),
+				"b": StringVal("z"),
+			}),
+			MapVal(map[string]Value{
+				"a": StringVal("x"),
+				"b": StringVal("y"),
+			}),
+			False,
+		},
+		"map with an unknown element and otherwise equal": {
+			MapVal(map[string]Value{
+				"a": UnknownVal(String),
+				"b": StringVal("y"),
+			}),
+			MapVal(map[string]Value{
+				"a": StringVal("x"),
+				"b": StringVal("y"),
+			}),
+			unknownResult,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Object attributes and map elements are visited in Go's
+			// randomized map iteration order, so a single comparison can
+			// give the expected answer by chance. Repeating it makes an
+			// order-dependent result fail reliably.
+			for i := 0; i < 100; i++ {
+				got := test.LHS.Equals(test.RHS)
+				if !got.RawEquals(test.Expected) {
+					t.Fatalf(
+						"wrong result on iteration %d\nLHS:      %#v\nRHS:      %#v\ngot:      %#v\nexpected: %#v",
+						i, test.LHS, test.RHS, got, test.Expected,
+					)
+				}
+			}
+		})
+	}
+}
+
 func TestValueEquals(t *testing.T) {
 	capsuleA := CapsuleVal(capsuleTestType1, &capsuleTestType1Native{"capsuleA"})
 	capsuleB := CapsuleVal(capsuleTestType1, &capsuleTestType1Native{"capsuleB"})

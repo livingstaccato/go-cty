@@ -246,6 +246,33 @@ func TestValueRefine(t *testing.T) {
 			},
 			WantPanic: `number lower bound cty.NumberIntVal(2) is greater than upper bound cty.NumberIntVal(1)`,
 		},
+		"unknown number cannot have equal bounds when both are exclusive": {
+			Build: func() Value {
+				return UnknownVal(Number).Refine().
+					NumberRangeLowerBound(NumberIntVal(1), false).
+					NumberRangeUpperBound(NumberIntVal(1), false).
+					NewValue()
+			},
+			WantPanic: `number lower bound cty.NumberIntVal(1) is greater than upper bound cty.NumberIntVal(1)`,
+		},
+		"unknown number cannot have equal bounds when only the lower is exclusive": {
+			Build: func() Value {
+				return UnknownVal(Number).Refine().
+					NumberRangeLowerBound(NumberIntVal(1), false).
+					NumberRangeUpperBound(NumberIntVal(1), true).
+					NewValue()
+			},
+			WantPanic: `number lower bound cty.NumberIntVal(1) is greater than upper bound cty.NumberIntVal(1)`,
+		},
+		"unknown number cannot have equal bounds when only the upper is exclusive": {
+			Build: func() Value {
+				return UnknownVal(Number).Refine().
+					NumberRangeLowerBound(NumberIntVal(1), true).
+					NumberRangeUpperBound(NumberIntVal(1), false).
+					NewValue()
+			},
+			WantPanic: `number lower bound cty.NumberIntVal(1) is greater than upper bound cty.NumberIntVal(1)`,
+		},
 		"known number can have its bounds confirmed": {
 			Build: func() Value {
 				return NumberIntVal(1).Refine().
