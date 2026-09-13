@@ -1,6 +1,7 @@
 # 1.19.1 (Unreleased)
 
 - stdlib: `SignumFunc` now works with any number cty can represent, whereas before it was unnecessarily limited only to numbers that could be converted to Go's `int` type.
+- stdlib: `SetProductFunc` now returns an error when the number of elements in the result cannot be represented as a Go `int`. Previously the length calculation silently overflowed, causing either a panic or, when it wrapped around to exactly zero, an incorrect empty result. It also no longer allocates a second copy of the whole product while building the result.
 
 # 1.19.0 (July 6, 2026)
 
