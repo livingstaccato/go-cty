@@ -1,6 +1,7 @@
 # 1.19.1 (Unreleased)
 
 - stdlib: `SignumFunc` now works with any number cty can represent, whereas before it was unnecessarily limited only to numbers that could be converted to Go's `int` type.
+- cty: Refining an unknown number with equal lower and upper bounds that are both exclusive now panics as an inconsistent refinement, as it already did when only one of the two bounds was exclusive. Previously it produced an unknown number whose range could not contain any value.
 
 # 1.19.0 (July 6, 2026)
 
