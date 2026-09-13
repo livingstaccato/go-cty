@@ -2,6 +2,7 @@
 
 - stdlib: `SignumFunc` now works with any number cty can represent, whereas before it was unnecessarily limited only to numbers that could be converted to Go's `int` type.
 - cty: `Value.Equals` now consistently returns `cty.False` when comparing object or map values where at least one attribute or element is definitely unequal and another is unknown. Previously the result was either `cty.False` or an unknown value, depending on Go's randomized map iteration order.
+- cty: Refining an unknown number with equal lower and upper bounds that are both exclusive now panics as an inconsistent refinement, as it already did when only one of the two bounds was exclusive. Previously it produced an unknown number whose range could not contain any value.
 
 # 1.19.0 (July 6, 2026)
 
